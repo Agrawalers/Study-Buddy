@@ -1,25 +1,30 @@
 # Supabase Configuration Guide
 
-## Email Redirect Setup
+## ⚠️ CRITICAL - Email Redirect Setup
 
-After deploying to Vercel, you MUST configure Supabase to allow redirects to your domain:
+Your app is deployed at: `https://study-buddy-git-main-agrawalers-projects.vercel.app`
+
+You MUST configure Supabase to allow redirects to your domain:
 
 ### Steps:
 
 1. Go to your Supabase Dashboard: https://supabase.com/dashboard
 2. Select your project: `nbvoeccgpuiqfdjbzlwt`
 3. Navigate to **Authentication** → **URL Configuration**
-4. Add your deployed URL to **Redirect URLs**:
-   - For local development: `http://localhost:8080/auth`
-   - For production: `https://your-app.vercel.app/auth`
+4. Set **Site URL** to: `https://study-buddy-git-main-agrawalers-projects.vercel.app`
+5. Add to **Redirect URLs**:
+   ```
+   http://localhost:8080/auth
+   https://study-buddy-git-main-agrawalers-projects.vercel.app/auth
+   ```
 
-### Example:
-```
-Site URL: https://your-app.vercel.app
-Redirect URLs:
-  - http://localhost:8080/auth
-  - https://your-app.vercel.app/auth
-```
+### Screenshot Guide:
+- Site URL: `https://study-buddy-git-main-agrawalers-projects.vercel.app`
+- Redirect URLs (one per line):
+  - `http://localhost:8080/auth`
+  - `https://study-buddy-git-main-agrawalers-projects.vercel.app/auth`
+
+Click **Save** after adding these URLs.
 
 ## Email Templates (Optional)
 
