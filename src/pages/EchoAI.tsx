@@ -129,23 +129,42 @@ const EchoAI = () => {
     setIsProcessing(true);
 
     try {
+      const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+      if (!apiKey) {
+        throw new Error('Gemini API key not found');
+      }
+
       const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${import.meta.env.VITE_GEMINI_API_KEY}`,
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${apiKey}`,
         {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { 
+            "Content-Type": "application/json",
+          },
           body: JSON.stringify({
-            contents: [{ parts: [{ text }] }],
+            contents: [{
+              parts: [{
+                text: text
+              }]
+            }]
           }),
         }
       );
 
       if (!response.ok) {
-        throw new Error('Failed to get response from AI');
+        const errorData = await response.json();
+        console.error('Gemini API Error:', errorData);
+        throw new Error(`API Error: ${response.status}`);
       }
 
       const data = await response.json();
-      const aiResponse = data.candidates?.[0]?.content?.parts?.[0]?.text || "I couldn't process that.";
+      console.log('Gemini Response:', data);
+      
+      const aiResponse = data.candidates?.[0]?.content?.parts?.[0]?.text;
+      
+      if (!aiResponse) {
+        throw new Error('No response from AI');
+      }
 
       const aiMsg: VoiceMessage = {
         role: "assistant",
@@ -159,9 +178,9 @@ const EchoAI = () => {
 
       // Then speak the response
       speak(aiResponse);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Echo AI Error:', error);
-      toast.error("Failed to process your message");
+      toast.error(error.message || "Failed to process your message");
       setIsProcessing(false);
     }
   };
