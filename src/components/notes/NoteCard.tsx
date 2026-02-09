@@ -3,26 +3,36 @@ import type { TopicNote } from "@/pages/TopicNotes";
 
 interface Props {
   note: TopicNote;
+  onView: (note: TopicNote) => void;
   onEdit: (note: TopicNote) => void;
   onDelete: (id: string) => void;
 }
 
-const NoteCard = ({ note, onEdit, onDelete }: Props) => {
+const NoteCard = ({ note, onView, onEdit, onDelete }: Props) => {
   return (
-    <div className="group rounded-xl border border-border bg-card shadow-card p-4 hover:shadow-soft transition-shadow">
+    <div 
+      className="group rounded-xl border border-border bg-card shadow-card p-4 hover:shadow-soft transition-all cursor-pointer"
+      onClick={() => onView(note)}
+    >
       <div className="flex items-start justify-between gap-2 mb-2">
         <h3 className="font-medium text-foreground text-sm leading-tight">
           {note.title}
         </h3>
         <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
           <button
-            onClick={() => onEdit(note)}
+            onClick={(e) => {
+              e.stopPropagation();
+              onEdit(note);
+            }}
             className="p-1 rounded text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
           >
             <Edit2 className="h-3.5 w-3.5" />
           </button>
           <button
-            onClick={() => onDelete(note.id)}
+            onClick={(e) => {
+              e.stopPropagation();
+              onDelete(note.id);
+            }}
             className="p-1 rounded text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
           >
             <Trash2 className="h-3.5 w-3.5" />

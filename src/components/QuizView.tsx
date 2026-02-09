@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { CheckCircle2, XCircle, HelpCircle, Trophy } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -21,15 +21,37 @@ interface QuizViewProps {
 
 const QuizView = ({ questions, topic, onRequestNewQuestions }: QuizViewProps) => {
   const { user } = useAuth();
-  const [currentQ, setCurrentQ] = useState(0);
-  const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
-  const [score, setScore] = useState(0);
-  const [answered, setAnswered] = useState<boolean[]>(new Array(questions.length).fill(false));
-  const [showResults, setShowResults] = useState(false);
+  const storageKey = `quiz-state-${topic}`;
+  
+  const [currentQ, setCurrentQ] = useState(() => {
+    const saved = sessionStorage.getItem(storageKey);
+    return saved ? JSON.parse(saved).currentQ : 0;
+  });
+  const [selectedAnswer, setSelectedAnswer] = useState<number | null>(() => {
+    const saved = sessionStorage.getItem(storageKey);
+    return saved ? JSON.parse(saved).selectedAnswer : null;
+  });
+  const [score, setScore] = useState(() => {
+    const saved = sessionStorage.getItem(storageKey);
+    return saved ? JSON.parse(saved).score : 0;
+  });
+  const [answered, setAnswered] = useState<boolean[]>(() => {
+    const saved = sessionStorage.getItem(storageKey);
+    return saved ? JSON.parse(saved).answered : new Array(questions.length).fill(false);
+  });
+  const [showResults, setShowResults] = useState(() => {
+    const saved = sessionStorage.getItem(storageKey);
+    return saved ? JSON.parse(saved).showResults : false;
+  });
 
   const question = questions[currentQ];
   const isAnswered = answered[currentQ];
   const isCorrect = selectedAnswer === question.correctIndex;
+
+  useEffect(() => {
+    const state = { currentQ, selectedAnswer, score, answered, showResults };
+    sessionStorage.setItem(storageKey, JSON.stringify(state));
+  }, [currentQ, selectedAnswer, score, answered, showResults, storageKey]);
 
   const handleSelect = (index: number) => {
     if (isAnswered) return;
@@ -63,6 +85,7 @@ const QuizView = ({ questions, topic, onRequestNewQuestions }: QuizViewProps) =>
   };
 
   const handleRestart = () => {
+    sessionStorage.removeItem(storageKey);
     if (onRequestNewQuestions) {
       onRequestNewQuestions();
     } else {

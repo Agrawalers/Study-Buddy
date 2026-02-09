@@ -138,7 +138,9 @@ const Index = () => {
               </div>
               {user && (
                 <div className="flex flex-col">
-                  <span className="text-lg font-semibold text-foreground">Hi, {user.email?.split('@')[0] || 'Student'}! 👋</span>
+                  <span className="text-lg font-semibold text-foreground">
+                    Hi, {user.user_metadata?.display_name || user.email?.split('@')[0] || 'Student'}! 👋
+                  </span>
                   <span className="text-xs text-muted-foreground">Ready to learn something new?</span>
                 </div>
               )}

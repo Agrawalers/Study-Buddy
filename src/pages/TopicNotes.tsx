@@ -16,6 +16,7 @@ import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import NoteEditor from "@/components/notes/NoteEditor";
 import NoteCard from "@/components/notes/NoteCard";
+import NoteViewer from "@/components/notes/NoteViewer";
 
 export interface TopicNote {
   id: string;
@@ -33,6 +34,8 @@ const TopicNotes = () => {
   const [notes, setNotes] = useState<TopicNote[]>([]);
   const [loading, setLoading] = useState(true);
   const [editorOpen, setEditorOpen] = useState(false);
+  const [viewerOpen, setViewerOpen] = useState(false);
+  const [viewingNote, setViewingNote] = useState<TopicNote | null>(null);
   const [editingNote, setEditingNote] = useState<TopicNote | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -61,7 +64,13 @@ const TopicNotes = () => {
 
   const handleEdit = (note: TopicNote) => {
     setEditingNote(note);
+    setViewerOpen(false);
     setEditorOpen(true);
+  };
+
+  const handleView = (note: TopicNote) => {
+    setViewingNote(note);
+    setViewerOpen(true);
   };
 
   const handleSaved = () => {
@@ -194,6 +203,7 @@ const TopicNotes = () => {
                     <NoteCard
                       key={note.id}
                       note={note}
+                      onView={handleView}
                       onEdit={handleEdit}
                       onDelete={handleDelete}
                     />
@@ -204,6 +214,16 @@ const TopicNotes = () => {
           </div>
         )}
       </div>
+
+      <NoteViewer
+        open={viewerOpen}
+        onOpenChange={(open) => {
+          setViewerOpen(open);
+          if (!open) setViewingNote(null);
+        }}
+        note={viewingNote}
+        onEdit={() => viewingNote && handleEdit(viewingNote)}
+      />
 
       <NoteEditor
         open={editorOpen}

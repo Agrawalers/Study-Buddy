@@ -41,6 +41,14 @@ interface StudyHistoryItem {
   created_at: string;
 }
 
+interface TopicProgress {
+  topic: string;
+  completed: number;
+  total: number;
+  percentage: number;
+  lastStudied: string;
+}
+
 const COLORS = [
   "hsl(158, 45%, 32%)",
   "hsl(38, 80%, 55%)",
@@ -55,6 +63,7 @@ const Progress = () => {
   const navigate = useNavigate();
   const [scores, setScores] = useState<QuizScore[]>([]);
   const [history, setHistory] = useState<StudyHistoryItem[]>([]);
+  const [topicProgress, setTopicProgress] = useState<TopicProgress[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -79,6 +88,39 @@ const Progress = () => {
 
     setScores(scoresRes.data || []);
     setHistory(historyRes.data || []);
+    
+    // Get explanation progress from sessionStorage
+    const progressData: TopicProgress[] = [];
+    const uniqueTopics = new Set((historyRes.data || []).map(h => h.topic));
+    
+    uniqueTopics.forEach(topic => {
+      const storageKey = `explanation-progress-${topic}`;
+      const saved = sessionStorage.getItem(storageKey);
+      if (saved) {
+        try {
+          const data = JSON.parse(saved);
+          const completed = Array.isArray(data) ? data : data.completed || [];
+          const total = Array.isArray(data) ? 0 : data.total || 0;
+          
+          if (total > 0) {
+            const lastItem = (historyRes.data || []).find(h => h.topic === topic);
+            progressData.push({
+              topic,
+              completed: completed.length,
+              total,
+              percentage: Math.round((completed.length / total) * 100),
+              lastStudied: lastItem?.created_at || new Date().toISOString(),
+            });
+          }
+        } catch (e) {
+          console.error('Error parsing progress data:', e);
+        }
+      }
+    });
+    
+    setTopicProgress(progressData.sort((a, b) => 
+      new Date(b.lastStudied).getTime() - new Date(a.lastStudied).getTime()
+    ));
     setLoading(false);
   };
 
@@ -341,6 +383,39 @@ const Progress = () => {
               </BarChart>
             </ResponsiveContainer>
           </motion.div>
+
+          {/* Topic Completion Progress */}
+          {topicProgress.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.25 }}
+              className="rounded-xl border border-border bg-card p-5 shadow-card md:col-span-2"
+            >
+              <h3 className="text-sm font-display font-semibold text-foreground mb-4 flex items-center gap-2">
+                <Target className="h-4 w-4 text-primary" />
+                Topic Completion Progress
+              </h3>
+              <div className="space-y-3">
+                {topicProgress.map((tp, i) => (
+                  <div key={i} className="space-y-1.5">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="font-medium text-foreground truncate">{tp.topic}</span>
+                      <span className="text-muted-foreground text-xs">
+                        {tp.completed}/{tp.total} steps ({tp.percentage}%)
+                      </span>
+                    </div>
+                    <div className="h-2 rounded-full bg-muted overflow-hidden">
+                      <div
+                        className="h-full rounded-full bg-gradient-hero transition-all"
+                        style={{ width: `${tp.percentage}%` }}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </motion.div>
+          )}
         </div>
 
         {/* Empty state */}

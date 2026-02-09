@@ -23,7 +23,11 @@ const SUGGESTED_QUESTIONS = [
 ];
 
 const AIChatTutor = ({ topic, explanation }: AIChatTutorProps) => {
-  const [messages, setMessages] = useState<Message[]>([]);
+  const storageKey = `chat-tutor-${topic}`;
+  const [messages, setMessages] = useState<Message[]>(() => {
+    const saved = sessionStorage.getItem(storageKey);
+    return saved ? JSON.parse(saved) : [];
+  });
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -32,6 +36,10 @@ const AIChatTutor = ({ topic, explanation }: AIChatTutorProps) => {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  useEffect(() => {
+    sessionStorage.setItem(storageKey, JSON.stringify(messages));
+  }, [messages, storageKey]);
 
   const sendMessage = async (messageText: string) => {
     if (!messageText.trim() || isLoading) return;

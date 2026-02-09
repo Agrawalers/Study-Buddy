@@ -65,6 +65,25 @@ const Dashboard = () => {
     }
   };
 
+  const addFavorite = async (topic: string) => {
+    if (!user) return;
+    const exists = favorites.find(f => f.topic === topic);
+    if (exists) {
+      await supabase.from("favorite_topics").delete().eq("id", exists.id);
+      setFavorites((f) => f.filter((item) => item.id !== exists.id));
+      toast.success("Removed from favorites");
+      return;
+    }
+    const { data, error } = await supabase.from("favorite_topics").insert({
+      user_id: user.id,
+      topic,
+    }).select().single();
+    if (!error && data) {
+      setFavorites((f) => [data, ...f]);
+      toast.success("Added to favorites!");
+    }
+  };
+
   const removeHistory = async (id: string) => {
     const { error } = await supabase.from("study_history").delete().eq("id", id);
     if (!error) {
@@ -201,7 +220,7 @@ const Dashboard = () => {
               {scores.map((s) => (
                 <div
                   key={s.id}
-                  className="flex items-center justify-between rounded-xl border border-border bg-card px-4 py-3 shadow-card"
+                  className="group flex items-center justify-between rounded-xl border border-border bg-card px-4 py-3 shadow-card"
                 >
                   <div>
                     <button
@@ -222,6 +241,17 @@ const Dashboard = () => {
                       {s.score}/{s.total_questions}
                     </p>
                   </div>
+                  <button
+                    onClick={() => addFavorite(s.topic)}
+                    className={`ml-2 transition-colors opacity-0 group-hover:opacity-100 ${
+                      favorites.find(f => f.topic === s.topic)
+                        ? "text-destructive fill-destructive"
+                        : "text-muted-foreground hover:text-destructive"
+                    }`}
+                    title={favorites.find(f => f.topic === s.topic) ? "Remove from favorites" : "Add to favorites"}
+                  >
+                    <Heart className={`h-3.5 w-3.5 ${favorites.find(f => f.topic === s.topic) ? "fill-current" : ""}`} />
+                  </button>
                 </div>
               ))}
             </div>
@@ -256,6 +286,17 @@ const Dashboard = () => {
                     </p>
                   </div>
                   <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => addFavorite(h.topic)}
+                      className={`transition-all opacity-0 group-hover:opacity-100 ${
+                        favorites.find(f => f.topic === h.topic)
+                          ? "text-destructive fill-destructive"
+                          : "text-muted-foreground hover:text-destructive"
+                      }`}
+                      title={favorites.find(f => f.topic === h.topic) ? "Remove from favorites" : "Add to favorites"}
+                    >
+                      <Heart className={`h-3.5 w-3.5 ${favorites.find(f => f.topic === h.topic) ? "fill-current" : ""}`} />
+                    </button>
                     <button
                       onClick={() => goToStudy(h.topic)}
                       className="text-primary opacity-0 group-hover:opacity-100 transition-opacity"

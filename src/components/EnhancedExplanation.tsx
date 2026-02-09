@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Lightbulb, ChevronRight, ChevronDown, CheckCircle2, BookOpen, Youtube } from "lucide-react";
 import ReactMarkdown from "react-markdown";
@@ -9,24 +9,68 @@ interface EnhancedExplanationProps {
 }
 
 const EnhancedExplanation = ({ explanation, topic }: EnhancedExplanationProps) => {
-  const paragraphs = explanation.split(/\n\n+/).filter((p) => p.trim());
-  const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set());
-  const [expandedStep, setExpandedStep] = useState<number | null>(0);
+  const paragraphs = useMemo(() => explanation.split(/\n\n+/).filter((p) => p.trim()), [explanation]);
+  const storageKey = useMemo(() => `explanation-progress-${topic}`, [topic]);
+  
+  const [completedSteps, setCompletedSteps] = useState<Set<number>>(() => {
+    const saved = sessionStorage.getItem(storageKey);
+    if (saved) {
+      try {
+        const data = JSON.parse(saved);
+        return new Set(Array.isArray(data) ? data : data.completed || []);
+      } catch {
+        return new Set();
+      }
+    }
+    return new Set();
+  });
+  const [expandedStep, setExpandedStep] = useState<number | null>(() => {
+    const saved = sessionStorage.getItem(storageKey);
+    if (saved) {
+      try {
+        const data = JSON.parse(saved);
+        const completed = Array.isArray(data) ? data : data.completed || [];
+        const nextIncomplete = paragraphs.findIndex((_, i) => !completed.includes(i));
+        return nextIncomplete !== -1 ? nextIncomplete : 0;
+      } catch {
+        return 0;
+      }
+    }
+    return 0;
+  });
 
   const toggleStep = (index: number) => {
     setExpandedStep(expandedStep === index ? null : index);
   };
 
+  useEffect(() => {
+    const progressData = {
+      completed: Array.from(completedSteps),
+      total: paragraphs.length
+    };
+    sessionStorage.setItem(storageKey, JSON.stringify(progressData));
+  }, [completedSteps, storageKey, paragraphs.length]);
+
   const markComplete = (index: number) => {
     setCompletedSteps((prev) => {
       const next = new Set(prev);
-      if (next.has(index)) next.delete(index);
-      else next.add(index);
+      if (next.has(index)) {
+        next.delete(index);
+      } else {
+        next.add(index);
+        // Auto-expand next step
+        if (index + 1 < paragraphs.length) {
+          setExpandedStep(index + 1);
+        }
+      }
       return next;
     });
   };
 
-  const progress = paragraphs.length > 0 ? (completedSteps.size / paragraphs.length) * 100 : 0;
+  const progress = useMemo(() => 
+    paragraphs.length > 0 ? (completedSteps.size / paragraphs.length) * 100 : 0,
+    [completedSteps.size, paragraphs.length]
+  );
 
   const youtubeSearchUrl = `https://www.youtube.com/results?search_query=${encodeURIComponent(topic + " explained")}`;
   const khanAcademyUrl = `https://www.khanacademy.org/search?search_query=${encodeURIComponent(topic)}`;
@@ -137,6 +181,15 @@ const EnhancedExplanation = ({ explanation, topic }: EnhancedExplanationProps) =
                       <div className="prose prose-sm max-w-none text-foreground/85 leading-relaxed">
                         <ReactMarkdown>{paragraph}</ReactMarkdown>
                       </div>
+                      {!isDone && (
+                        <button
+                          onClick={() => markComplete(i)}
+                          className="mt-4 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:opacity-90 transition-opacity flex items-center gap-2"
+                        >
+                          <CheckCircle2 className="h-4 w-4" />
+                          {i + 1 < paragraphs.length ? "Mark Complete & Next Step" : "Mark Complete"}
+                        </button>
+                      )}
                     </div>
                   </motion.div>
                 )}
