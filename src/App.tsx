@@ -16,14 +16,14 @@ const queryClient = new QueryClient();
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, isLoading } = useAuth();
-  if (isLoading) return null;
+  if (isLoading) return <div className="min-h-screen bg-background" />;
   if (!user) return <Navigate to="/auth" replace />;
   return <>{children}</>;
 };
 
 const AuthRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, isLoading } = useAuth();
-  if (isLoading) return null;
+  if (isLoading) return <div className="min-h-screen bg-background" />;
   if (user) return <Navigate to="/" replace />;
   return <>{children}</>;
 };
