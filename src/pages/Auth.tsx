@@ -26,7 +26,8 @@ const Auth = () => {
       if (error) {
         toast.error(error);
       } else {
-        toast.success("Check your email to verify your account!");
+        toast.success("Account created successfully!");
+        navigate("/");
       }
     } else {
       const { error } = await signIn(email, password);
