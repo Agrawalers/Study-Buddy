@@ -38,7 +38,7 @@ const EnhancedExplanation = ({ explanation, topic }: EnhancedExplanationProps) =
       transition={{ duration: 0.4 }}
     >
       {/* Header */}
-      <div className="flex items-center gap-3 mb-5">
+      <div className="flex items-center gap-3 mb-3">
         <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
           <Lightbulb className="h-5 w-5 text-primary" />
         </div>
@@ -47,18 +47,24 @@ const EnhancedExplanation = ({ explanation, topic }: EnhancedExplanationProps) =
             Step-by-Step Explanation
           </h3>
           <p className="text-xs text-muted-foreground">
-            {completedSteps.size} of {paragraphs.length} steps completed
+            Click checkboxes to mark steps as completed
           </p>
         </div>
       </div>
 
       {/* Progress bar */}
-      <div className="h-2 rounded-full bg-muted mb-6 overflow-hidden">
-        <motion.div
-          className="h-full rounded-full bg-gradient-hero"
-          animate={{ width: `${progress}%` }}
-          transition={{ duration: 0.4 }}
-        />
+      <div className="mb-2">
+        <div className="flex items-center justify-between text-xs text-muted-foreground mb-1.5">
+          <span>Progress</span>
+          <span className="font-medium">{completedSteps.size} / {paragraphs.length} completed</span>
+        </div>
+        <div className="h-2.5 rounded-full bg-muted overflow-hidden">
+          <motion.div
+            className="h-full rounded-full bg-gradient-hero"
+            animate={{ width: `${progress}%` }}
+            transition={{ duration: 0.4 }}
+          />
+        </div>
       </div>
 
       {/* Step-by-step cards */}
@@ -88,11 +94,12 @@ const EnhancedExplanation = ({ explanation, topic }: EnhancedExplanationProps) =
                     e.stopPropagation();
                     markComplete(i);
                   }}
-                  className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full border-2 transition-all ${
+                  className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full border-2 transition-all hover:scale-110 ${
                     isDone
-                      ? "border-primary bg-primary text-primary-foreground"
-                      : "border-border hover:border-primary/50"
+                      ? "border-primary bg-primary text-primary-foreground shadow-sm"
+                      : "border-muted-foreground/30 hover:border-primary/50 hover:bg-primary/5"
                   }`}
+                  title={isDone ? "Mark as incomplete" : "Mark as complete"}
                 >
                   {isDone ? (
                     <CheckCircle2 className="h-4 w-4" />
