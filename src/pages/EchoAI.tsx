@@ -63,24 +63,58 @@ const EchoAI = () => {
   }, [user]);
 
   const loadHistory = async () => {
-    if (!user) return;
-    const { data } = await supabase
-      .from("voice_chat_history")
-      .select("*")
-      .order("created_at", { ascending: false })
-      .limit(50);
-    if (data) setConversationHistory(data);
+    // Try to load from Supabase first
+    if (user) {
+      try {
+        const { data } = await supabase
+          .from("voice_chat_history")
+          .select("*")
+          .order("created_at", { ascending: false })
+          .limit(50);
+        if (data) {
+          setConversationHistory(data);
+          return;
+        }
+      } catch (error) {
+        console.log('Using local storage for history');
+      }
+    }
+    
+    // Fallback to localStorage
+    const saved = localStorage.getItem('echo-ai-history');
+    if (saved) {
+      setConversationHistory(JSON.parse(saved));
+    }
   };
 
   const saveToHistory = async (userMsg: string, aiMsg: string) => {
-    if (!user) return;
-    await supabase.from("voice_chat_history").insert({
-      user_id: user.id,
+    const newEntry = {
+      id: Date.now().toString(),
+      user_id: user?.id || 'guest',
       user_message: userMsg,
       ai_response: aiMsg,
       language: language,
-    });
-    loadHistory();
+      created_at: new Date().toISOString(),
+    };
+
+    // Try to save to Supabase
+    if (user) {
+      try {
+        await supabase.from("voice_chat_history").insert({
+          user_id: user.id,
+          user_message: userMsg,
+          ai_response: aiMsg,
+          language: language,
+        });
+      } catch (error) {
+        console.log('Saving to local storage instead');
+      }
+    }
+    
+    // Always save to localStorage as backup
+    const updated = [newEntry, ...conversationHistory].slice(0, 50);
+    setConversationHistory(updated);
+    localStorage.setItem('echo-ai-history', JSON.stringify(updated));
   };
 
   const processVoiceInput = async (text: string) => {
