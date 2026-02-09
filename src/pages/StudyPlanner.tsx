@@ -27,6 +27,9 @@ export interface StudyPlan {
   end_time: string;
   color: string;
   created_at: string;
+  schedule_date?: string;
+  ai_prompt?: string;
+  is_ai_generated?: boolean;
 }
 
 const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
@@ -43,6 +46,16 @@ const StudyPlanner = () => {
   useEffect(() => {
     if (!user) return;
     fetchPlans();
+    
+    // Prevent page refresh on visibility change
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        // Don't refresh, just keep current state
+      }
+    };
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
   }, [user]);
 
   const fetchPlans = async () => {

@@ -29,16 +29,16 @@ interface Props {
 }
 
 const WeeklyTimetable = ({ plans, onEdit, onDelete }: Props) => {
-  // Group plans by schedule name
+  // Group plans by schedule identifier
   const groupedSchedules = plans.reduce((acc, plan) => {
     const parts = plan.topic.split('|');
-    const scheduleName = parts.length > 1 ? parts[0] : 'Manual Schedule';
+    const scheduleKey = parts.length > 1 ? parts[0] : 'Manual Schedule';
     const actualTopic = parts.length > 1 ? parts[1] : plan.topic;
     
-    if (!acc[scheduleName]) {
-      acc[scheduleName] = [];
+    if (!acc[scheduleKey]) {
+      acc[scheduleKey] = [];
     }
-    acc[scheduleName].push({ ...plan, actualTopic });
+    acc[scheduleKey].push({ ...plan, actualTopic });
     return acc;
   }, {} as Record<string, (StudyPlan & { actualTopic: string })[]>);
 
@@ -53,13 +53,17 @@ const WeeklyTimetable = ({ plans, onEdit, onDelete }: Props) => {
         const plansByDay = DAYS.map((_, idx) =>
           schedulePlans.filter((p) => p.day_of_week === idx)
         );
+        
+        const displayName = scheduleName.startsWith('AI-') 
+          ? `AI Schedule - ${scheduleName.substring(3)}`
+          : scheduleName;
 
         return (
           <div key={scheduleName} className="space-y-3">
             <div className="flex items-center gap-3 px-2">
               <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-primary/10 border border-primary/20">
                 <Sparkles className="h-4 w-4 text-primary" />
-                <span className="text-sm font-semibold text-foreground">{scheduleName}</span>
+                <span className="text-sm font-semibold text-foreground">{displayName}</span>
               </div>
               <div className="h-px flex-1 bg-border" />
             </div>
