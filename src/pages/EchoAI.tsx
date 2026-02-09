@@ -34,7 +34,8 @@ const EchoAI = () => {
 
   const { speaking: isSpeaking, speak, stop: stopSpeaking } = useSpeechSynthesis({
     lang: language,
-    rate: 0.95,
+    rate: 1.2,
+    pitch: 1.0,
   });
 
   // Auto-restart listening after AI finishes speaking
@@ -129,38 +130,39 @@ const EchoAI = () => {
     setIsProcessing(true);
 
     try {
-      const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+      const apiKey = import.meta.env.VITE_GROQ_API_KEY;
       if (!apiKey) {
-        throw new Error('Gemini API key not found');
+        throw new Error('Groq API key not found');
       }
 
       const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
+        "https://api.groq.com/openai/v1/chat/completions",
         {
           method: "POST",
           headers: { 
             "Content-Type": "application/json",
+            "Authorization": `Bearer ${apiKey}`
           },
           body: JSON.stringify({
-            contents: [{
-              parts: [{
-                text: text
-              }]
-            }]
+            model: "llama-3.3-70b-versatile",
+            messages: [{
+              role: "user",
+              content: text
+            }],
+            temperature: 0.7,
+            max_tokens: 150
           }),
         }
       );
 
       if (!response.ok) {
         const errorData = await response.json();
-        console.error('Gemini API Error:', errorData);
+        console.error('Groq API Error:', errorData);
         throw new Error(`API Error: ${response.status}`);
       }
 
       const data = await response.json();
-      console.log('Gemini Response:', data);
-      
-      const aiResponse = data.candidates?.[0]?.content?.parts?.[0]?.text;
+      const aiResponse = data.choices?.[0]?.message?.content;
       
       if (!aiResponse) {
         throw new Error('No response from AI');
@@ -226,7 +228,7 @@ const EchoAI = () => {
               <p className="text-xs text-muted-foreground">Voice-to-Voice Assistant</p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-4">
             <div className="flex items-center gap-2 bg-secondary/30 rounded-full px-3 py-2">
               <Globe className="h-4 w-4 text-muted-foreground" />
               <Select value={language} onValueChange={setLanguage}>
@@ -341,7 +343,7 @@ const EchoAI = () => {
         </div>
 
         {/* Voice Control */}
-        <div className="flex justify-center pb-4">
+        <div className="flex justify-center gap-4 pb-4">
           <motion.button
             whileTap={{ scale: 0.95 }}
             onClick={handleMicClick}
@@ -369,6 +371,18 @@ const EchoAI = () => {
               />
             )}
           </motion.button>
+          {isSpeaking && (
+            <motion.button
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={stopSpeaking}
+              className="h-20 w-20 rounded-full bg-red-500 hover:bg-red-600 shadow-2xl transition-all flex items-center justify-center"
+            >
+              <Volume2 className="h-8 w-8 text-white" />
+              <span className="absolute text-3xl">✕</span>
+            </motion.button>
+          )}
         </div>
         <p className="text-center text-sm text-muted-foreground">
           {listening

@@ -1,7 +1,8 @@
 import { useState, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Lightbulb, ChevronRight, ChevronDown, CheckCircle2, BookOpen, Youtube } from "lucide-react";
+import { Lightbulb, ChevronRight, ChevronDown, CheckCircle2, BookOpen, Youtube, Volume2 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
+import useSpeechSynthesis from "@/hooks/useSpeechSynthesis";
 
 interface EnhancedExplanationProps {
   explanation: string;
@@ -11,6 +12,8 @@ interface EnhancedExplanationProps {
 const EnhancedExplanation = ({ explanation, topic }: EnhancedExplanationProps) => {
   const paragraphs = useMemo(() => explanation.split(/\n\n+/).filter((p) => p.trim()), [explanation]);
   const storageKey = useMemo(() => `explanation-progress-${topic}`, [topic]);
+  const { speaking, speak, stop } = useSpeechSynthesis({ rate: 1.2, pitch: 1.0 });
+  const [speakingStep, setSpeakingStep] = useState<number | null>(null);
   
   const [completedSteps, setCompletedSteps] = useState<Set<number>>(() => {
     const saved = sessionStorage.getItem(storageKey);
@@ -38,6 +41,20 @@ const EnhancedExplanation = ({ explanation, topic }: EnhancedExplanationProps) =
     }
     return 0;
   });
+
+  const handleSpeak = (index: number, text: string) => {
+    if (speaking && speakingStep === index) {
+      stop();
+      setSpeakingStep(null);
+    } else {
+      setSpeakingStep(index);
+      speak(text);
+    }
+  };
+
+  useEffect(() => {
+    if (!speaking) setSpeakingStep(null);
+  }, [speaking]);
 
   const toggleStep = (index: number) => {
     setExpandedStep(expandedStep === index ? null : index);
@@ -161,6 +178,20 @@ const EnhancedExplanation = ({ explanation, topic }: EnhancedExplanationProps) =
                   Step {i + 1}: {paragraph.slice(0, 60).trim()}
                   {paragraph.length > 60 ? "..." : ""}
                 </span>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleSpeak(i, paragraph);
+                  }}
+                  className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition-all hover:scale-110 ${
+                    speaking && speakingStep === i
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-muted hover:bg-primary/10"
+                  }`}
+                  title="Listen to explanation"
+                >
+                  <Volume2 className="h-4 w-4" />
+                </button>
                 {isExpanded ? (
                   <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" />
                 ) : (

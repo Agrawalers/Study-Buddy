@@ -18,10 +18,37 @@ const useSpeechSynthesis = ({ lang = 'en-US', rate = 1, pitch = 1 }: UseSpeechSy
     if (!supported || !text) return;
 
     window.speechSynthesis.cancel();
+    
+    // Wait for voices to load
+    const voices = window.speechSynthesis.getVoices();
+    if (voices.length === 0) {
+      window.speechSynthesis.onvoiceschanged = () => {
+        speak(text);
+      };
+      return;
+    }
+
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.lang = lang;
     utterance.rate = rate;
     utterance.pitch = pitch;
+    utterance.volume = 1;
+
+    // Select best quality voice based on language
+    const langCode = lang.split('-')[0];
+    const preferredVoice = voices.find(v => 
+      v.lang.startsWith(langCode) && 
+      !v.localService && // Prefer online voices
+      (v.name.includes('Google') || v.name.includes('Natural') || v.name.includes('Premium'))
+    ) || voices.find(v => 
+      v.lang.startsWith(langCode) && !v.localService
+    ) || voices.find(v => 
+      v.lang.startsWith(langCode)
+    );
+    
+    if (preferredVoice) {
+      utterance.voice = preferredVoice;
+    }
 
     utterance.onstart = () => setSpeaking(true);
     utterance.onend = () => setSpeaking(false);
