@@ -10,6 +10,7 @@ import Dashboard from "./pages/Dashboard";
 import StudyPlanner from "./pages/StudyPlanner";
 import TopicNotes from "./pages/TopicNotes";
 import Progress from "./pages/Progress";
+import EchoAI from "./pages/EchoAI";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -41,6 +42,7 @@ const App = () => (
             <Route path="/planner" element={<ProtectedRoute><StudyPlanner /></ProtectedRoute>} />
             <Route path="/notes" element={<ProtectedRoute><TopicNotes /></ProtectedRoute>} />
             <Route path="/progress" element={<ProtectedRoute><Progress /></ProtectedRoute>} />
+            <Route path="/echo-ai" element={<ProtectedRoute><EchoAI /></ProtectedRoute>} />
             <Route path="/auth" element={<AuthRoute><Auth /></AuthRoute>} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />

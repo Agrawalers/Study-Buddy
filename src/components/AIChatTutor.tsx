@@ -1,9 +1,12 @@
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { MessageCircle, Send, Loader2, Bot, User, Sparkles } from "lucide-react";
+import { MessageCircle, Send, Loader2, Bot, User, Sparkles, Mic, Volume2, Globe } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import ReactMarkdown from "react-markdown";
+import useSpeechRecognition from "@/hooks/useSpeechRecognition";
+import useSpeechSynthesis from "@/hooks/useSpeechSynthesis";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface Message {
   role: "user" | "assistant";
@@ -30,8 +33,19 @@ const AIChatTutor = ({ topic, explanation }: AIChatTutorProps) => {
   });
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [language, setLanguage] = useState("en-US");
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
+
+  const { listening, transcript, start: startListening, stop: stopListening } = useSpeechRecognition({
+    lang: language,
+    interimResults: true,
+  });
+
+  const { speaking: isSpeaking, speak, stop: stopSpeaking } = useSpeechSynthesis({
+    lang: language,
+    rate: 0.95,
+  });
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -41,8 +55,14 @@ const AIChatTutor = ({ topic, explanation }: AIChatTutorProps) => {
     sessionStorage.setItem(storageKey, JSON.stringify(messages));
   }, [messages, storageKey]);
 
+  useEffect(() => {
+    if (transcript) setInput(transcript);
+  }, [transcript]);
+
   const sendMessage = async (messageText: string) => {
     if (!messageText.trim() || isLoading) return;
+
+    if (listening) stopListening();
 
     const userMsg: Message = { role: "user", content: messageText.trim() };
     const updatedMessages = [...messages, userMsg];
@@ -142,6 +162,12 @@ const AIChatTutor = ({ topic, explanation }: AIChatTutorProps) => {
           } catch { /* ignore */ }
         }
       }
+
+      // Auto-read assistant response
+      if (assistantContent) {
+        const cleanContent = assistantContent.replace(/```[^`]*```/g, '').replace(/\n+/g, ' ');
+        speak(cleanContent);
+      }
     } catch (err: any) {
       console.error("Chat error:", err);
       setMessages((prev) => [
@@ -168,9 +194,27 @@ const AIChatTutor = ({ topic, explanation }: AIChatTutorProps) => {
         <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-info/15">
           <MessageCircle className="h-5 w-5 text-info" />
         </div>
-        <div>
+        <div className="flex-1">
           <h3 className="text-xl font-display font-semibold text-foreground">AI Tutor</h3>
           <p className="text-xs text-muted-foreground">Ask follow-up questions about {topic}</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Globe className="h-4 w-4 text-muted-foreground" />
+          <Select value={language} onValueChange={setLanguage}>
+            <SelectTrigger className="w-32 h-8 text-xs">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="en-US">🇬🇧 English</SelectItem>
+              <SelectItem value="hi-IN">🇮🇳 हिंदी</SelectItem>
+              <SelectItem value="es-ES">🇪🇸 Español</SelectItem>
+              <SelectItem value="fr-FR">🇫🇷 Français</SelectItem>
+              <SelectItem value="de-DE">🇩🇪 Deutsch</SelectItem>
+              <SelectItem value="pt-PT">🇵🇹 Português</SelectItem>
+              <SelectItem value="ja-JP">🇯🇵 日本語</SelectItem>
+              <SelectItem value="zh-CN">🇨🇳 中文</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
       </div>
 
@@ -263,9 +307,28 @@ const AIChatTutor = ({ topic, explanation }: AIChatTutorProps) => {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             placeholder="Ask a follow-up question..."
-            disabled={isLoading}
+            disabled={isLoading || listening}
             className="flex-1 text-sm"
           />
+          <Button
+            type="button"
+            size="icon"
+            onClick={() => (listening ? stopListening() : startListening())}
+            className={`shrink-0 ${listening ? "bg-red-500 hover:bg-red-600" : "bg-secondary hover:bg-secondary/80"}`}
+            title={listening ? "Stop recording" : "Start voice input"}
+          >
+            <Mic className="h-4 w-4" />
+          </Button>
+          <Button
+            type="button"
+            size="icon"
+            onClick={() => (isSpeaking ? stopSpeaking() : speak(input))}
+            disabled={!input.trim()}
+            className={`shrink-0 ${isSpeaking ? "bg-blue-500 hover:bg-blue-600" : "bg-secondary hover:bg-secondary/80"}`}
+            title={isSpeaking ? "Stop speaking" : "Speak input"}
+          >
+            <Volume2 className="h-4 w-4" />
+          </Button>
           <Button
             type="submit"
             size="icon"
