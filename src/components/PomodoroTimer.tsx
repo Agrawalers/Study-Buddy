@@ -1,23 +1,24 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Timer, Play, Pause, RotateCcw, X, Coffee, BookOpen } from "lucide-react";
+import { Timer, Play, Pause, RotateCcw, X, Coffee, BookOpen, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 
 type TimerMode = "focus" | "break";
 
-const FOCUS_MINUTES = 25;
-const BREAK_MINUTES = 5;
-
 const PomodoroTimer = () => {
   const [isOpen, setIsOpen] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const [focusMinutes, setFocusMinutes] = useState(25);
+  const [breakMinutes, setBreakMinutes] = useState(5);
   const [mode, setMode] = useState<TimerMode>("focus");
-  const [secondsLeft, setSecondsLeft] = useState(FOCUS_MINUTES * 60);
+  const [secondsLeft, setSecondsLeft] = useState(25 * 60);
   const [isRunning, setIsRunning] = useState(false);
   const [sessions, setSessions] = useState(0);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const totalSeconds = mode === "focus" ? FOCUS_MINUTES * 60 : BREAK_MINUTES * 60;
+  const totalSeconds = mode === "focus" ? focusMinutes * 60 : breakMinutes * 60;
   const progress = ((totalSeconds - secondsLeft) / totalSeconds) * 100;
 
   const minutes = Math.floor(secondsLeft / 60);
@@ -25,9 +26,9 @@ const PomodoroTimer = () => {
 
   const switchMode = useCallback((newMode: TimerMode) => {
     setMode(newMode);
-    setSecondsLeft(newMode === "focus" ? FOCUS_MINUTES * 60 : BREAK_MINUTES * 60);
+    setSecondsLeft(newMode === "focus" ? focusMinutes * 60 : breakMinutes * 60);
     setIsRunning(false);
-  }, []);
+  }, [focusMinutes, breakMinutes]);
 
   useEffect(() => {
     if (isRunning) {
@@ -56,7 +57,7 @@ const PomodoroTimer = () => {
 
   const reset = () => {
     setIsRunning(false);
-    setSecondsLeft(mode === "focus" ? FOCUS_MINUTES * 60 : BREAK_MINUTES * 60);
+    setSecondsLeft(mode === "focus" ? focusMinutes * 60 : breakMinutes * 60);
   };
 
   return (
@@ -95,13 +96,57 @@ const PomodoroTimer = () => {
                   Pomodoro Timer
                 </span>
               </div>
-              <button
-                onClick={() => setIsOpen(false)}
-                className="text-muted-foreground hover:text-foreground transition-colors"
-              >
-                <X className="h-4 w-4" />
-              </button>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => setShowSettings(!showSettings)}
+                  className="text-muted-foreground hover:text-foreground transition-colors p-1"
+                >
+                  <Settings className="h-4 w-4" />
+                </button>
+                <button
+                  onClick={() => setIsOpen(false)}
+                  className="text-muted-foreground hover:text-foreground transition-colors p-1"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
             </div>
+
+            {/* Settings */}
+            {showSettings && (
+              <div className="px-4 py-3 bg-muted/30 border-b border-border space-y-3">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-foreground">Focus Duration (min)</label>
+                  <Input
+                    type="number"
+                    min="1"
+                    max="120"
+                    value={focusMinutes}
+                    onChange={(e) => {
+                      const val = parseInt(e.target.value) || 1;
+                      setFocusMinutes(val);
+                      if (mode === "focus" && !isRunning) setSecondsLeft(val * 60);
+                    }}
+                    className="h-8 text-sm"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-foreground">Break Duration (min)</label>
+                  <Input
+                    type="number"
+                    min="1"
+                    max="60"
+                    value={breakMinutes}
+                    onChange={(e) => {
+                      const val = parseInt(e.target.value) || 1;
+                      setBreakMinutes(val);
+                      if (mode === "break" && !isRunning) setSecondsLeft(val * 60);
+                    }}
+                    className="h-8 text-sm"
+                  />
+                </div>
+              </div>
+            )}
 
             {/* Mode tabs */}
             <div className="grid grid-cols-2 gap-1 p-2">
