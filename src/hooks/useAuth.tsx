@@ -19,10 +19,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       setSession(session);
       setUser(session?.user ?? null);
       setIsLoading(false);
+      
+      // Auto-redirect to home after email confirmation
+      if (event === 'SIGNED_IN' && session) {
+        window.location.href = '/';
+      }
     });
 
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -39,7 +44,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       email,
       password,
       options: {
-        emailRedirectTo: window.location.origin,
+        emailRedirectTo: `${window.location.origin}/auth`,
         data: { display_name: displayName },
       },
     });
