@@ -4,19 +4,22 @@ An AI-powered study companion that helps students learn smarter with personalize
 
 ## ✨ Features
 
-- **🤖 AI-Powered Study Materials**: Generate comprehensive study materials on any topic using Google Gemini AI
+- **🤖 AI-Powered Study Materials**: Generate comprehensive study materials on any topic using AI
 - **📝 Smart Flashcards**: Interactive flashcards with flip animations for effective memorization
 - **🎯 Adaptive Quizzes**: Multiple-choice quizzes with instant feedback and scoring
-- **💡 Detailed Explanations**: In-depth topic explanations with enhanced learning content
+- **💡 Step-by-Step Explanations**: Interactive explanations with progress tracking and audio playback
+- **🔊 Text-to-Speech**: Listen to explanations with natural voice synthesis
 - **📖 Study Tips**: Personalized study strategies and learning recommendations
 - **🗓️ Study Planner**: Weekly timetable with AI-powered schedule generation
-- **📓 Topic Notes**: Create, edit, and organize notes with rich text support
-- **📊 Progress Tracking**: Visual analytics of your study history and performance
-- **⏱️ Pomodoro Timer**: Built-in focus timer with customizable work/break intervals
-- **💬 AI Chat Tutor**: Interactive AI assistant for questions and clarifications
-- **🔐 User Authentication**: Secure login with Supabase authentication
-- **❤️ Favorites**: Save and quickly access your favorite topics
+- **📓 Topic Notes**: Create, edit, view, and organize notes with rich text support
+- **📊 Progress Tracking**: Visual analytics with real-time topic completion tracking
+- **⏱️ Pomodoro Timer**: Built-in focus timer with customizable work/break intervals (1-120 min focus, 1-60 min break)
+- **💬 AI Chat Tutor**: Interactive AI assistant with voice input/output support in 8 languages
+- **🎤 Echo AI Voice Assistant**: Dedicated voice-to-voice AI conversation with automatic speech recognition
+- **🔐 User Authentication**: Secure login with Supabase authentication and duplicate email detection
+- **❤️ Favorites System**: Save and quickly access your favorite topics with visual indicators
 - **📄 PDF Export**: Export study materials to PDF format
+- **🌍 Multi-language Support**: Voice features support English, Hindi, Spanish, French, German, Portuguese, Japanese, and Chinese
 
 ## 🛠️ Tech Stack
 
@@ -24,9 +27,12 @@ An AI-powered study companion that helps students learn smarter with personalize
 - **Build Tool**: Vite
 - **Styling**: Tailwind CSS + shadcn/ui components
 - **Backend**: Supabase (Auth + Database)
-- **AI**: Google Gemini API
+- **AI Models**: 
+  - Google Gemini API (Study generation)
+  - Groq API with Llama 3.3 70B (Echo AI voice assistant)
+- **Voice**: Web Speech API (Recognition & Synthesis)
 - **Routing**: React Router v6
-- **State Management**: TanStack Query
+- **State Management**: TanStack Query + SessionStorage
 - **Animations**: Framer Motion
 - **Charts**: Recharts
 
@@ -37,6 +43,7 @@ An AI-powered study companion that helps students learn smarter with personalize
 - Node.js 16+ and npm
 - Supabase account
 - Google Gemini API key
+- Groq API key (free at https://console.groq.com)
 
 ### Installation
 
@@ -57,6 +64,7 @@ VITE_SUPABASE_PROJECT_ID=your_project_id
 VITE_SUPABASE_PUBLISHABLE_KEY=your_publishable_key
 VITE_SUPABASE_URL=your_supabase_url
 VITE_GEMINI_API_KEY=your_gemini_api_key
+VITE_GROQ_API_KEY=your_groq_api_key
 ```
 
 4. Start the development server:
@@ -110,22 +118,53 @@ supabase/
 
 ### AI Study Generation
 Enter any topic and get instant access to:
-- Comprehensive explanations
-- Custom flashcards
-- Practice quizzes
-- Study tips
+- Step-by-step explanations with checkboxes to track completion
+- Audio playback for each explanation step
+- Custom flashcards with flip animations
+- Practice quizzes with session persistence
+- Personalized study tips
+- Links to YouTube and Khan Academy resources
+
+### Echo AI Voice Assistant
+- Voice-to-voice conversation with AI
+- Automatic speech recognition in 8 languages
+- Natural text-to-speech responses
+- Visual echo wave animation during speech
+- Stop button to interrupt AI responses
+- Conversation history with localStorage fallback
+- Powered by Groq's Llama 3.3 70B model for fast responses
+
+### AI Chat Tutor
+- Text and voice input support
+- Multi-language voice recognition (8 languages)
+- Automatic voice responses
+- Session-based conversation history
+- Language selector for international students
 
 ### Study Planner
 - Create weekly study schedules
 - AI-powered schedule optimization
 - Color-coded time blocks
-- Easy drag-and-drop interface
+- Drag-and-drop interface
 
 ### Progress Tracking
-- Study session history
-- Topic frequency analysis
+- Real-time topic completion tracking
+- Study session history with favorites
+- Quiz score analytics
 - Visual charts and statistics
-- Favorite topics tracking
+- Favorite topics with heart indicators
+
+### Notes System
+- Create and edit notes with rich text
+- Read-only viewer mode
+- Clickable note cards
+- Organized by topic
+
+### Pomodoro Timer
+- Customizable focus duration (1-120 minutes)
+- Customizable break duration (1-60 minutes)
+- Visual countdown timer
+- Audio notifications
 
 ## 🤝 Contributing
 
@@ -143,8 +182,9 @@ This project is open source and available under the MIT License.
 ## 🙏 Acknowledgments
 
 - Built with [shadcn/ui](https://ui.shadcn.com/)
-- Powered by [Google Gemini AI](https://ai.google.dev/)
+- AI powered by [Google Gemini](https://ai.google.dev/) and [Groq](https://groq.com/)
 - Backend by [Supabase](https://supabase.com/)
+- Voice features using Web Speech API
 
 ---
 
