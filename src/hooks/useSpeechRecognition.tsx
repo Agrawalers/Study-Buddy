@@ -3,9 +3,10 @@ import { useState, useEffect, useCallback } from 'react';
 interface UseSpeechRecognitionOptions {
   lang?: string;
   interimResults?: boolean;
+  continuous?: boolean;
 }
 
-const useSpeechRecognition = ({ lang = 'en-US', interimResults = true }: UseSpeechRecognitionOptions = {}) => {
+const useSpeechRecognition = ({ lang = 'en-US', interimResults = true, continuous = true }: UseSpeechRecognitionOptions = {}) => {
   const [listening, setListening] = useState(false);
   const [transcript, setTranscript] = useState('');
   const [recognition, setRecognition] = useState<any>(null);
@@ -17,7 +18,7 @@ const useSpeechRecognition = ({ lang = 'en-US', interimResults = true }: UseSpee
     if (!SpeechRecognition) return;
 
     const recognitionInstance = new SpeechRecognition();
-    recognitionInstance.continuous = true;
+    recognitionInstance.continuous = continuous;
     recognitionInstance.interimResults = interimResults;
     recognitionInstance.lang = lang;
 
@@ -42,7 +43,7 @@ const useSpeechRecognition = ({ lang = 'en-US', interimResults = true }: UseSpee
         recognitionInstance.stop();
       }
     };
-  }, [lang, interimResults]);
+  }, [lang, interimResults, continuous]);
 
   const start = useCallback(() => {
     if (recognition && !listening) {
@@ -59,7 +60,11 @@ const useSpeechRecognition = ({ lang = 'en-US', interimResults = true }: UseSpee
     }
   }, [recognition, listening]);
 
-  return { listening, transcript, start, stop, supported: !!recognition };
+  const reset = useCallback(() => {
+    setTranscript('');
+  }, []);
+
+  return { listening, transcript, start, stop, reset, supported: !!recognition };
 };
 
 export default useSpeechRecognition;

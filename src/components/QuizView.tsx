@@ -9,8 +9,7 @@ import { toast } from "sonner";
 interface QuizQuestion {
   question: string;
   options: string[];
-  correctIndex: number;
-  explanation: string;
+  correctAnswer: number;
 }
 
 interface QuizViewProps {
@@ -46,7 +45,7 @@ const QuizView = ({ questions, topic, onRequestNewQuestions }: QuizViewProps) =>
 
   const question = questions[currentQ];
   const isAnswered = answered[currentQ];
-  const isCorrect = selectedAnswer === question.correctIndex;
+  const isCorrect = selectedAnswer === question.correctAnswer;
 
   useEffect(() => {
     const state = { currentQ, selectedAnswer, score, answered, showResults };
@@ -59,7 +58,7 @@ const QuizView = ({ questions, topic, onRequestNewQuestions }: QuizViewProps) =>
     const newAnswered = [...answered];
     newAnswered[currentQ] = true;
     setAnswered(newAnswered);
-    if (index === question.correctIndex) {
+    if (index === question.correctAnswer) {
       setScore((s) => s + 1);
     }
   };
@@ -72,7 +71,7 @@ const QuizView = ({ questions, topic, onRequestNewQuestions }: QuizViewProps) =>
       setShowResults(true);
       // Save quiz score
       if (user && topic) {
-        const finalScore = score + (selectedAnswer === questions[currentQ].correctIndex && !answered[currentQ] ? 1 : 0);
+        const finalScore = score + (selectedAnswer === questions[currentQ].correctAnswer && !answered[currentQ] ? 1 : 0);
         await supabase.from("quiz_scores").insert({
           user_id: user.id,
           topic,
@@ -155,7 +154,7 @@ const QuizView = ({ questions, topic, onRequestNewQuestions }: QuizViewProps) =>
           {question.options.map((option, i) => {
             let optionStyle = "border-border bg-background hover:border-primary/40 hover:bg-primary/5";
             if (isAnswered) {
-              if (i === question.correctIndex) {
+              if (i === question.correctAnswer) {
                 optionStyle = "border-success bg-success/10";
               } else if (i === selectedAnswer && !isCorrect) {
                 optionStyle = "border-destructive bg-destructive/10";
@@ -174,10 +173,10 @@ const QuizView = ({ questions, topic, onRequestNewQuestions }: QuizViewProps) =>
                 className={`w-full text-left rounded-lg border-2 p-4 transition-all ${optionStyle} disabled:cursor-default`}
               >
                 <div className="flex items-center gap-3">
-                  {isAnswered && i === question.correctIndex && (
+                  {isAnswered && i === question.correctAnswer && (
                     <CheckCircle2 className="h-5 w-5 text-success shrink-0" />
                   )}
-                  {isAnswered && i === selectedAnswer && !isCorrect && i !== question.correctIndex && (
+                  {isAnswered && i === selectedAnswer && !isCorrect && i !== question.correctAnswer && (
                     <XCircle className="h-5 w-5 text-destructive shrink-0" />
                   )}
                   <span className="text-foreground">{option}</span>
@@ -195,9 +194,8 @@ const QuizView = ({ questions, topic, onRequestNewQuestions }: QuizViewProps) =>
               exit={{ opacity: 0, height: 0 }}
               className="mt-4 rounded-lg bg-muted p-4"
             >
-              <p className="text-sm text-muted-foreground">
-                <span className="font-semibold text-foreground">Explanation:</span>{" "}
-                {question.explanation}
+              <p className="text-sm text-foreground">
+                {isCorrect ? "✅ Correct!" : `❌ The correct answer is: ${question.options[question.correctAnswer]}`}
               </p>
             </motion.div>
           )}

@@ -67,39 +67,85 @@ const Index = () => {
     setCurrentTopic(topic);
 
     try {
-      const { data, error } = await supabase.functions.invoke("generate-study", {
-        body: { topic },
+      const apiKey = import.meta.env.VITE_GROQ_API_KEY;
+      if (!apiKey) {
+        toast.error('API key not configured');
+        return;
+      }
+
+      const prompt = `Generate comprehensive study materials for: "${topic}"
+
+You must respond with ONLY a valid JSON object (no markdown, no code blocks, no extra text).
+
+Format:
+{
+  "explanation": "Write a detailed 5-7 paragraph explanation. Separate each paragraph with \\n\\n (double newline).",
+  "flashcards": [
+    {"front": "Key concept or question", "back": "Clear answer or explanation"},
+    {"front": "Key concept or question", "back": "Clear answer or explanation"},
+    {"front": "Key concept or question", "back": "Clear answer or explanation"},
+    {"front": "Key concept or question", "back": "Clear answer or explanation"},
+    {"front": "Key concept or question", "back": "Clear answer or explanation"}
+  ],
+  "quiz": [
+    {"question": "Question text", "options": ["A", "B", "C", "D"], "correctAnswer": 0},
+    {"question": "Question text", "options": ["A", "B", "C", "D"], "correctAnswer": 1},
+    {"question": "Question text", "options": ["A", "B", "C", "D"], "correctAnswer": 2},
+    {"question": "Question text", "options": ["A", "B", "C", "D"], "correctAnswer": 3},
+    {"question": "Question text", "options": ["A", "B", "C", "D"], "correctAnswer": 0}
+  ],
+  "studyTips": ["Practical tip 1", "Practical tip 2", "Practical tip 3", "Practical tip 4", "Practical tip 5"]
+}
+
+Generate exactly 5 flashcards, 5 quiz questions, and 5 study tips.`;
+
+      const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiKey}`
+        },
+        body: JSON.stringify({
+          model: 'llama-3.3-70b-versatile',
+          messages: [
+            { role: 'system', content: 'You are a study materials generator. Always respond with valid JSON only.' },
+            { role: 'user', content: prompt }
+          ],
+          temperature: 0.7,
+          max_tokens: 3000,
+          response_format: { type: 'json_object' }
+        })
       });
 
-      if (error) {
-        if (error.message?.includes("429")) {
-          toast.error("Too many requests. Please wait a moment and try again.");
-        } else if (error.message?.includes("402")) {
-          toast.error("AI usage limit reached. Please try again later.");
-        } else {
-          toast.error(error.message || "Failed to generate study materials");
-        }
-        return;
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => null);
+        console.error('Groq API Error:', errorData);
+        throw new Error(errorData?.error?.message || 'Failed to generate study materials');
       }
 
-      if (data?.error) {
-        toast.error(data.error);
-        return;
+      const data = await response.json();
+      const content = data.choices?.[0]?.message?.content;
+      
+      if (!content) {
+        throw new Error('No response from AI');
       }
 
-      setStudyData(data);
+      const cleanContent = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+      const studyMaterials = JSON.parse(cleanContent);
+
+      setStudyData(studyMaterials);
 
       // Save to study history
       if (user) {
-        await supabase.from("study_history").insert({
+        await supabase.from('study_history').insert({
           user_id: user.id,
           topic,
-          study_data: data,
+          study_data: studyMaterials,
         });
       }
-    } catch (err) {
-      console.error("Error:", err);
-      toast.error("Something went wrong. Please try again.");
+    } catch (err: any) {
+      console.error('Error:', err);
+      toast.error(err?.message || 'Failed to generate study materials');
     } finally {
       setIsLoading(false);
     }

@@ -34,6 +34,7 @@ const AIChatTutor = ({ topic, explanation }: AIChatTutorProps) => {
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [language, setLanguage] = useState("en-US");
+  const [autoSpeak, setAutoSpeak] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
 
@@ -45,6 +46,8 @@ const AIChatTutor = ({ topic, explanation }: AIChatTutorProps) => {
   const { speaking: isSpeaking, speak, stop: stopSpeaking } = useSpeechSynthesis({
     lang: language,
     rate: 0.95,
+    pitch: 1.1,
+    voiceGender: 'female',
   });
 
   useEffect(() => {
@@ -58,6 +61,13 @@ const AIChatTutor = ({ topic, explanation }: AIChatTutorProps) => {
   useEffect(() => {
     if (transcript) setInput(transcript);
   }, [transcript]);
+
+  // Stop speaking if auto-speak is turned off
+  useEffect(() => {
+    if (!autoSpeak && isSpeaking) {
+      stopSpeaking();
+    }
+  }, [autoSpeak, isSpeaking, stopSpeaking]);
 
   const sendMessage = async (messageText: string) => {
     if (!messageText.trim() || isLoading) return;
@@ -73,106 +83,56 @@ const AIChatTutor = ({ topic, explanation }: AIChatTutorProps) => {
     let assistantContent = "";
 
     try {
-      const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat-tutor`;
-      const resp = await fetch(CHAT_URL, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+      const apiKey = import.meta.env.VITE_GROQ_API_KEY;
+      if (!apiKey) {
+        throw new Error('API key not configured');
+      }
+
+      const systemPrompt = `You are a helpful AI tutor explaining "${topic}". Context: ${explanation.substring(0, 500)}...\n\nAnswer the student's questions clearly and concisely.`;
+      
+      const conversationMessages = [
+        { role: 'system', content: systemPrompt },
+        ...updatedMessages.map(m => ({
+          role: m.role === 'user' ? 'user' : 'assistant',
+          content: m.content
+        }))
+      ];
+
+      const resp = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiKey}`
         },
         body: JSON.stringify({
-          messages: updatedMessages,
-          topic,
-          context: explanation,
-        }),
+          model: 'llama-3.3-70b-versatile',
+          messages: conversationMessages,
+          temperature: 0.7,
+          max_tokens: 1000
+        })
       });
 
-      if (!resp.ok || !resp.body) {
+      if (!resp.ok) {
         const errorData = await resp.json().catch(() => null);
-        throw new Error(errorData?.error || "Failed to connect to tutor");
+        throw new Error(errorData?.error?.message || 'Failed to connect to tutor');
       }
 
-      const reader = resp.body.getReader();
-      const decoder = new TextDecoder();
-      let textBuffer = "";
+      const data = await resp.json();
+      assistantContent = data.choices?.[0]?.message?.content || 'Sorry, I could not generate a response.';
+      
+      setMessages((prev) => [...prev, { role: 'assistant', content: assistantContent }]);
 
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        textBuffer += decoder.decode(value, { stream: true });
-
-        let newlineIndex: number;
-        while ((newlineIndex = textBuffer.indexOf("\n")) !== -1) {
-          let line = textBuffer.slice(0, newlineIndex);
-          textBuffer = textBuffer.slice(newlineIndex + 1);
-
-          if (line.endsWith("\r")) line = line.slice(0, -1);
-          if (line.startsWith(":") || line.trim() === "") continue;
-          if (!line.startsWith("data: ")) continue;
-
-          const jsonStr = line.slice(6).trim();
-          if (jsonStr === "[DONE]") break;
-
-          try {
-            const parsed = JSON.parse(jsonStr);
-            const content = parsed.choices?.[0]?.delta?.content as string | undefined;
-            if (content) {
-              assistantContent += content;
-              setMessages((prev) => {
-                const last = prev[prev.length - 1];
-                if (last?.role === "assistant") {
-                  return prev.map((m, i) =>
-                    i === prev.length - 1 ? { ...m, content: assistantContent } : m
-                  );
-                }
-                return [...prev, { role: "assistant", content: assistantContent }];
-              });
-            }
-          } catch {
-            textBuffer = line + "\n" + textBuffer;
-            break;
-          }
-        }
-      }
-
-      // Final flush
-      if (textBuffer.trim()) {
-        for (let raw of textBuffer.split("\n")) {
-          if (!raw) continue;
-          if (raw.endsWith("\r")) raw = raw.slice(0, -1);
-          if (raw.startsWith(":") || raw.trim() === "") continue;
-          if (!raw.startsWith("data: ")) continue;
-          const jsonStr = raw.slice(6).trim();
-          if (jsonStr === "[DONE]") continue;
-          try {
-            const parsed = JSON.parse(jsonStr);
-            const content = parsed.choices?.[0]?.delta?.content as string | undefined;
-            if (content) {
-              assistantContent += content;
-              setMessages((prev) => {
-                const last = prev[prev.length - 1];
-                if (last?.role === "assistant") {
-                  return prev.map((m, i) =>
-                    i === prev.length - 1 ? { ...m, content: assistantContent } : m
-                  );
-                }
-                return [...prev, { role: "assistant", content: assistantContent }];
-              });
-            }
-          } catch { /* ignore */ }
-        }
-      }
-
-      // Auto-read assistant response
-      if (assistantContent) {
+      // Auto-read assistant response only if enabled
+      if (autoSpeak && assistantContent) {
         const cleanContent = assistantContent.replace(/```[^`]*```/g, '').replace(/\n+/g, ' ');
         speak(cleanContent);
       }
     } catch (err: any) {
       console.error("Chat error:", err);
+      const errorMsg = err.message || 'Unknown error occurred';
       setMessages((prev) => [
         ...prev,
-        { role: "assistant", content: `Sorry, I encountered an error: ${err.message}. Please try again.` },
+        { role: "assistant", content: `Sorry, I encountered an error: ${errorMsg}. Please try again.` },
       ]);
     } finally {
       setIsLoading(false);
@@ -199,6 +159,18 @@ const AIChatTutor = ({ topic, explanation }: AIChatTutorProps) => {
           <p className="text-xs text-muted-foreground">Ask follow-up questions about {topic}</p>
         </div>
         <div className="flex items-center gap-2">
+          <button
+            onClick={() => setAutoSpeak(!autoSpeak)}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+              autoSpeak
+                ? "bg-primary text-primary-foreground"
+                : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+            }`}
+            title={autoSpeak ? "Auto-speak enabled" : "Auto-speak disabled"}
+          >
+            <Volume2 className="h-3.5 w-3.5" />
+            {autoSpeak ? "ON" : "OFF"}
+          </button>
           <Globe className="h-4 w-4 text-muted-foreground" />
           <Select value={language} onValueChange={setLanguage}>
             <SelectTrigger className="w-32 h-8 text-xs">

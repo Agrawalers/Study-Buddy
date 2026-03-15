@@ -26,8 +26,8 @@ const PDFExportButton = ({ data, topic }: PDFExportButtonProps) => {
         .map(
           (fc, i) =>
             `<div style="margin-bottom:12px;padding:12px;border:1px solid #e5e7eb;border-radius:8px;">
-              <p style="font-weight:600;color:#1a1a1a;margin:0 0 6px;">Q${i + 1}: ${fc.question}</p>
-              <p style="color:#4a5568;margin:0;">A: ${fc.answer}</p>
+              <p style="font-weight:600;color:#1a1a1a;margin:0 0 6px;">Q${i + 1}: ${fc.front}</p>
+              <p style="color:#4a5568;margin:0;">A: ${fc.back}</p>
             </div>`
         )
         .join("");
@@ -41,11 +41,10 @@ const PDFExportButton = ({ data, topic }: PDFExportButtonProps) => {
                 .map(
                   (opt, j) =>
                     `<p style="margin:2px 0;padding:4px 8px;${
-                      j === q.correctIndex ? "background:#dcfce7;border-radius:4px;font-weight:600;" : ""
-                    }">${opt}${j === q.correctIndex ? " ✓" : ""}</p>`
+                      j === q.correctAnswer ? "background:#dcfce7;border-radius:4px;font-weight:600;" : ""
+                    }">${opt}${j === q.correctAnswer ? " ✓" : ""}</p>`
                 )
                 .join("")}
-              <p style="color:#6b7280;font-size:13px;margin:8px 0 0;font-style:italic;">${q.explanation}</p>
             </div>`
         )
         .join("");

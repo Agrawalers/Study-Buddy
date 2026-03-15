@@ -4,9 +4,10 @@ interface UseSpeechSynthesisOptions {
   lang?: string;
   rate?: number;
   pitch?: number;
+  voiceGender?: 'female' | 'male' | 'any';
 }
 
-const useSpeechSynthesis = ({ lang = 'en-US', rate = 1, pitch = 1 }: UseSpeechSynthesisOptions = {}) => {
+const useSpeechSynthesis = ({ lang = 'en-US', rate = 1, pitch = 1, voiceGender = 'any' }: UseSpeechSynthesisOptions = {}) => {
   const [speaking, setSpeaking] = useState(false);
   const [supported, setSupported] = useState(false);
 
@@ -34,17 +35,37 @@ const useSpeechSynthesis = ({ lang = 'en-US', rate = 1, pitch = 1 }: UseSpeechSy
     utterance.pitch = pitch;
     utterance.volume = 1;
 
-    // Select best quality voice based on language
     const langCode = lang.split('-')[0];
-    const preferredVoice = voices.find(v => 
-      v.lang.startsWith(langCode) && 
-      !v.localService && // Prefer online voices
-      (v.name.includes('Google') || v.name.includes('Natural') || v.name.includes('Premium'))
-    ) || voices.find(v => 
-      v.lang.startsWith(langCode) && !v.localService
-    ) || voices.find(v => 
-      v.lang.startsWith(langCode)
-    );
+    
+    // Filter voices by gender preference
+    let filteredVoices = voices.filter(v => v.lang.startsWith(langCode));
+    
+    if (voiceGender === 'female') {
+      filteredVoices = filteredVoices.filter(v => 
+        v.name.toLowerCase().includes('female') ||
+        v.name.toLowerCase().includes('samantha') ||
+        v.name.toLowerCase().includes('victoria') ||
+        v.name.toLowerCase().includes('karen') ||
+        v.name.toLowerCase().includes('moira') ||
+        v.name.toLowerCase().includes('tessa') ||
+        v.name.toLowerCase().includes('fiona') ||
+        v.name.toLowerCase().includes('zira') ||
+        v.name.toLowerCase().includes('susan') ||
+        !v.name.toLowerCase().includes('male')
+      );
+    } else if (voiceGender === 'male') {
+      filteredVoices = filteredVoices.filter(v => 
+        v.name.toLowerCase().includes('male') ||
+        v.name.toLowerCase().includes('daniel') ||
+        v.name.toLowerCase().includes('alex')
+      );
+    }
+
+    // Select best quality voice
+    const preferredVoice = filteredVoices.find(v => 
+      !v.localService && 
+      (v.name.includes('Google') || v.name.includes('Natural') || v.name.includes('Premium') || v.name.includes('Enhanced'))
+    ) || filteredVoices.find(v => !v.localService) || filteredVoices[0];
     
     if (preferredVoice) {
       utterance.voice = preferredVoice;
@@ -55,7 +76,7 @@ const useSpeechSynthesis = ({ lang = 'en-US', rate = 1, pitch = 1 }: UseSpeechSy
     utterance.onerror = () => setSpeaking(false);
 
     window.speechSynthesis.speak(utterance);
-  }, [lang, rate, pitch, supported]);
+  }, [lang, rate, pitch, voiceGender, supported]);
 
   const stop = useCallback(() => {
     if (supported) {

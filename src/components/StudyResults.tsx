@@ -15,12 +15,11 @@ import PDFExportButton from "@/components/PDFExportButton";
 
 export interface StudyMaterials {
   explanation: string;
-  flashcards: { question: string; answer: string }[];
+  flashcards: { front: string; back: string }[];
   quiz: {
     question: string;
     options: string[];
-    correctIndex: number;
-    explanation: string;
+    correctAnswer: number;
   }[];
   studyTips: string[];
 }
@@ -43,7 +42,7 @@ function buildAutoNotes(data: StudyMaterials, topic: string) {
   });
 
   const definitions = data.flashcards
-    .map((fc) => `Q: ${fc.question}\nA: ${fc.answer}`)
+    .map((fc) => `Q: ${fc.front}\nA: ${fc.back}`)
     .join("\n\n");
   notes.push({
     topic,
@@ -100,23 +99,42 @@ const StudyResults = ({ data, topic }: StudyResultsProps) => {
   const handleRequestNewQuiz = async () => {
     setLoadingNewQuiz(true);
     try {
-      const timestamp = Date.now();
-      const { data: newData, error } = await supabase.functions.invoke("generate-study", {
-        body: { topic, requestId: timestamp },
-      });
-
-      if (error) {
-        console.error("Quiz generation error:", error);
-        toast.error("Failed to generate new quiz questions");
-        setLoadingNewQuiz(false);
+      const apiKey = import.meta.env.VITE_GROQ_API_KEY;
+      if (!apiKey) {
+        toast.error('API key not configured');
         return;
       }
 
-      if (newData?.quiz) {
-        setQuizQuestions(newData.quiz);
+      const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiKey}`
+        },
+        body: JSON.stringify({
+          model: 'llama-3.3-70b-versatile',
+          messages: [
+            { role: 'system', content: 'You are a quiz generator. Always respond with valid JSON only.' },
+            { role: 'user', content: `Generate 5 new multiple-choice quiz questions about "${topic}". Return ONLY JSON: {"quiz": [{"question": "text", "options": ["A", "B", "C", "D"], "correctAnswer": 0}]}` }
+          ],
+          temperature: 0.8,
+          max_tokens: 1500,
+          response_format: { type: 'json_object' }
+        })
+      });
+
+      if (!response.ok) throw new Error('Failed to generate quiz');
+
+      const result = await response.json();
+      const content = result.choices?.[0]?.message?.content;
+      if (!content) throw new Error('No response');
+
+      const parsed = JSON.parse(content);
+      if (parsed?.quiz) {
+        setQuizQuestions(parsed.quiz);
         toast.success("New quiz questions generated!");
       } else {
-        toast.error("No quiz data received");
+        toast.error("Invalid quiz format");
       }
     } catch (err) {
       console.error("Error generating new quiz:", err);

@@ -4,8 +4,8 @@ import { RotateCw, ChevronLeft, ChevronRight, Layers } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface Flashcard {
-  question: string;
-  answer: string;
+  front: string;
+  back: string;
 }
 
 interface FlashcardsViewProps {
@@ -58,7 +58,7 @@ const FlashcardsView = ({ flashcards }: FlashcardsViewProps) => {
           <div className="absolute inset-0 backface-hidden rounded-xl border border-border bg-card p-8 flex flex-col items-center justify-center shadow-card">
             <span className="text-xs uppercase tracking-wider text-muted-foreground mb-3">Question</span>
             <p className="text-lg md:text-xl text-center text-foreground font-medium leading-relaxed">
-              {current.question}
+              {current.front}
             </p>
             <span className="mt-4 text-xs text-muted-foreground flex items-center gap-1">
               <RotateCw className="h-3 w-3" /> Tap to reveal answer
@@ -69,7 +69,7 @@ const FlashcardsView = ({ flashcards }: FlashcardsViewProps) => {
           <div className="absolute inset-0 backface-hidden rotate-y-180 rounded-xl border-2 border-primary/30 bg-primary/5 p-8 flex flex-col items-center justify-center">
             <span className="text-xs uppercase tracking-wider text-primary mb-3">Answer</span>
             <p className="text-lg md:text-xl text-center text-foreground font-medium leading-relaxed">
-              {current.answer}
+              {current.back}
             </p>
             <span className="mt-4 text-xs text-muted-foreground flex items-center gap-1">
               <RotateCw className="h-3 w-3" /> Tap to see question

@@ -146,10 +146,7 @@ const EnhancedExplanation = ({ explanation, topic }: EnhancedExplanationProps) =
                   : "border-border"
               }`}
             >
-              <button
-                onClick={() => toggleStep(i)}
-                className="w-full flex items-center gap-3 p-4 text-left"
-              >
+              <div className="w-full flex items-center gap-3 p-4">
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
@@ -170,14 +167,15 @@ const EnhancedExplanation = ({ explanation, topic }: EnhancedExplanationProps) =
                     </span>
                   )}
                 </button>
-                <span
-                  className={`flex-1 font-medium text-sm ${
-                    isDone ? "text-primary" : "text-foreground"
-                  }`}
+                <button
+                  onClick={() => toggleStep(i)}
+                  className="flex-1 font-medium text-sm text-left"
                 >
-                  Step {i + 1}: {paragraph.slice(0, 60).trim()}
-                  {paragraph.length > 60 ? "..." : ""}
-                </span>
+                  <span className={isDone ? "text-primary" : "text-foreground"}>
+                    Step {i + 1}: {paragraph.slice(0, 60).trim()}
+                    {paragraph.length > 60 ? "..." : ""}
+                  </span>
+                </button>
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
@@ -192,12 +190,14 @@ const EnhancedExplanation = ({ explanation, topic }: EnhancedExplanationProps) =
                 >
                   <Volume2 className="h-4 w-4" />
                 </button>
-                {isExpanded ? (
-                  <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" />
-                ) : (
-                  <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
-                )}
-              </button>
+                <button onClick={() => toggleStep(i)} className="shrink-0">
+                  {isExpanded ? (
+                    <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                  ) : (
+                    <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                  )}
+                </button>
+              </div>
 
               <AnimatePresence>
                 {isExpanded && (

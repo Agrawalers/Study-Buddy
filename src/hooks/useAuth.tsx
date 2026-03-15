@@ -44,11 +44,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   const signUp = async (email: string, password: string, displayName: string) => {
+    const redirectUrl = window.location.hostname === 'localhost' 
+      ? `${window.location.origin}/auth`
+      : 'https://study-buddy-nu-seven.vercel.app/auth';
+      
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
-        emailRedirectTo: `${window.location.origin}/auth`,
+        emailRedirectTo: redirectUrl,
         data: { display_name: displayName },
       },
     });

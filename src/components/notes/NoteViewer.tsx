@@ -20,8 +20,8 @@ const NoteViewer = ({ open, onOpenChange, note, onEdit }: Props) => {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
-        <DialogHeader>
+      <DialogContent className="sm:max-w-lg max-h-[85vh] flex flex-col">
+        <DialogHeader className="flex-shrink-0">
           <DialogTitle className="font-display flex items-center justify-between pr-8">
             <span>{note.title}</span>
             <Button
@@ -35,7 +35,7 @@ const NoteViewer = ({ open, onOpenChange, note, onEdit }: Props) => {
             </Button>
           </DialogTitle>
         </DialogHeader>
-        <div className="space-y-4">
+        <div className="space-y-4 overflow-y-auto flex-1 pr-2">
           <div>
             <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
               Topic

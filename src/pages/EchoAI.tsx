@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
-import { Mic, Volume2, Globe, ArrowLeft, Sparkles, Loader2, History } from "lucide-react";
+import { Mic, Volume2, Globe, ArrowLeft, Sparkles, Loader2, History, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -27,33 +27,36 @@ const EchoAI = () => {
   const [conversationHistory, setConversationHistory] = useState<any[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const { listening, transcript, start: startListening, stop: stopListening } = useSpeechRecognition({
+  const { listening, transcript, start: startListening, stop: stopListening, reset: resetTranscript } = useSpeechRecognition({
     lang: language,
-    interimResults: true,
+    interimResults: false,
+    continuous: false,
   });
 
   const { speaking: isSpeaking, speak, stop: stopSpeaking } = useSpeechSynthesis({
     lang: language,
-    rate: 1.2,
-    pitch: 1.0,
+    rate: 0.95,
+    pitch: 1.2,
+    voiceGender: 'female',
   });
+
+  // Auto-process when user stops speaking
+  useEffect(() => {
+    if (!listening && transcript && transcript.trim() && transcript.length >= 3 && !isProcessing) {
+      processVoiceInput(transcript);
+    }
+  }, [listening, transcript, isProcessing]);
 
   // Auto-restart listening after AI finishes speaking
   useEffect(() => {
     if (!isSpeaking && !listening && messages.length > 0 && !isProcessing) {
       const timer = setTimeout(() => {
+        resetTranscript();
         startListening();
-      }, 500);
+      }, 1000);
       return () => clearTimeout(timer);
     }
-  }, [isSpeaking]);
-
-  // Stop processing when speaking ends
-  useEffect(() => {
-    if (!isSpeaking && isProcessing) {
-      setIsProcessing(false);
-    }
-  }, [isSpeaking]);
+  }, [isSpeaking, listening, messages.length, isProcessing]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -64,28 +67,39 @@ const EchoAI = () => {
   }, [user]);
 
   const loadHistory = async () => {
-    // Try to load from Supabase first
     if (user) {
       try {
-        const { data } = await supabase
+        const { data, error } = await supabase
           .from("voice_chat_history")
           .select("*")
           .order("created_at", { ascending: false })
           .limit(50);
-        if (data) {
+        if (!error && data) {
           setConversationHistory(data);
           return;
         }
       } catch (error) {
-        console.log('Using local storage for history');
+        // Table doesn't exist, use localStorage
       }
     }
     
-    // Fallback to localStorage
     const saved = localStorage.getItem('echo-ai-history');
     if (saved) {
       setConversationHistory(JSON.parse(saved));
     }
+  };
+
+  const clearHistory = async () => {
+    if (user) {
+      try {
+        await supabase.from("voice_chat_history").delete().eq("user_id", user.id);
+      } catch (error) {
+        // Table doesn't exist
+      }
+    }
+    setConversationHistory([]);
+    localStorage.removeItem('echo-ai-history');
+    toast.success("Chat history cleared");
   };
 
   const saveToHistory = async (userMsg: string, aiMsg: string) => {
@@ -98,28 +112,32 @@ const EchoAI = () => {
       created_at: new Date().toISOString(),
     };
 
-    // Try to save to Supabase
     if (user) {
       try {
-        await supabase.from("voice_chat_history").insert({
+        const { error } = await supabase.from("voice_chat_history").insert({
           user_id: user.id,
           user_message: userMsg,
           ai_response: aiMsg,
           language: language,
         });
+        if (!error) {
+          const updated = [newEntry, ...conversationHistory].slice(0, 50);
+          setConversationHistory(updated);
+          localStorage.setItem('echo-ai-history', JSON.stringify(updated));
+          return;
+        }
       } catch (error) {
-        console.log('Saving to local storage instead');
+        // Table doesn't exist, use localStorage
       }
     }
     
-    // Always save to localStorage as backup
     const updated = [newEntry, ...conversationHistory].slice(0, 50);
     setConversationHistory(updated);
     localStorage.setItem('echo-ai-history', JSON.stringify(updated));
   };
 
   const processVoiceInput = async (text: string) => {
-    if (!text.trim()) return;
+    if (!text.trim() || text.length < 3 || isProcessing) return;
 
     const userMsg: VoiceMessage = {
       role: "user",
@@ -128,6 +146,7 @@ const EchoAI = () => {
     };
     setMessages((prev) => [...prev, userMsg]);
     setIsProcessing(true);
+    resetTranscript();
 
     try {
       const apiKey = import.meta.env.VITE_GROQ_API_KEY;
@@ -175,10 +194,8 @@ const EchoAI = () => {
       };
       setMessages((prev) => [...prev, aiMsg]);
 
-      // Save to history and reload
       await saveToHistory(text, aiResponse);
 
-      // Then speak the response
       speak(aiResponse);
     } catch (error: any) {
       console.error('Echo AI Error:', error);
@@ -188,16 +205,17 @@ const EchoAI = () => {
   };
 
   useEffect(() => {
-    if (!listening && transcript && transcript.trim()) {
-      processVoiceInput(transcript);
+    if (!isSpeaking && isProcessing) {
+      setIsProcessing(false);
     }
-  }, [listening]);
+  }, [isSpeaking, isProcessing]);
 
   const handleMicClick = () => {
     if (listening) {
       stopListening();
     } else {
       if (isSpeaking) stopSpeaking();
+      resetTranscript();
       startListening();
     }
   };
@@ -255,7 +273,19 @@ const EchoAI = () => {
               </SheetTrigger>
               <SheetContent>
                 <SheetHeader>
-                  <SheetTitle>Conversation History</SheetTitle>
+                  <div className="flex items-center justify-between pr-8">
+                    <SheetTitle>Conversation History</SheetTitle>
+                    {conversationHistory.length > 0 && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={clearHistory}
+                        className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
                 </SheetHeader>
                 <div className="mt-4 space-y-3 max-h-[calc(100vh-120px)] overflow-y-auto">
                   {conversationHistory.map((conv) => (
@@ -305,7 +335,7 @@ const EchoAI = () => {
             </h2>
             <p className="text-muted-foreground mb-2">
               {listening
-                ? "🎙️ Listening... Speak now"
+                ? `🎙️ ${transcript || 'Listening... Speak now'}`
                 : isProcessing
                 ? "⏳ Processing your request..."
                 : isSpeaking
